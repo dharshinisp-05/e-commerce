@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Login Page</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+      background-color: #f9f9f9;
+    }
+    h2 {
+      color: #333;
+    }
+    form {
+      background: #fff;
+      padding: 20px;
+      max-width: 400px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      border-radius: 8px;
+    }
+    input {
+      width: 100%;
+      margin-bottom: 15px;
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #4285f4;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    #message {
+      margin-top: 10px;
+      color: red;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Login to explore more</h2>
+  <form id="loginForm">
+    <input type="text" id="firstName" placeholder="First Name" required>
+    <input type="text" id="lastName" placeholder="Last Name" required>
+    <input type="email" id="email" placeholder="Email ID" required>
+    <input type="password" id="password" placeholder="Password" required>
+    <input type="password" id="confirmPassword" placeholder="Confirm Password" required>
+    <button type="submit">Submit</button>
+    <div id="message"></div>
+  </form>
+<!-- OTP Page -->
+<div id="otpSection" style="display:none;">
+  <h2>Enter OTP</h2>
+  <input type="text" id="otpInput" placeholder="Enter OTP"><br>
+  <button id="verifyOtp">Verify OTP</button>
+  <div id="otpMessage"></div>
+  <button id="resendOtp" style="display:none;">Time's up! Resend Password</button>
+</div>
+
+<script>
+  // Trigger OTP flow after successful form validation
+  function showOtpSection(email, phone) {
+    document.getElementById("loginForm").style.display = "none";
+    document.getElementById("otpSection").style.display = "block";
+    
+    // Send OTP request to backend
+    fetch("/send-otp", {
+      method: "POST",
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ email, phone })
+    });
+
+    let otpStart = Date.now();
+    let timer = setTimeout(() => {
+      document.getElementById("resendOtp").style.display = "inline-block";
+      document.getElementById("otpMessage").textContent = "Time ends!";
+    }, 120000); // 2 minutes
+  }
+
+  // Verify OTP
+  document.getElementById("verifyOtp").addEventListener("click", () => {
+    const enteredOtp = document.getElementById("otpInput").value;
+    fetch("/verify-otp", {
+      method: "POST",
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ otp: enteredOtp })
+    }).then(res => res.json())
+      .then(data => {
+        if (data.valid) {
+          document.getElementById("otpMessage").textContent = "Login successful!";
+        } else {
+          document.getElementById("otpMessage").textContent = "OTP is incorrect.";
+        }
+      });
+  });
+
+  // Resend OTP
+  document.getElementById("resendOtp").addEventListener("click", () => {
+    document.getElementById("resendOtp").style.display = "none";
+    document.getElementById("otpMessage").textContent = "";
+    fetch("/resend-otp", { method: "POST" });
+  });
+</script>
+
+
+  <script>
+    document.getElementById("loginForm").addEventListener("submit", function(event) {
+      event.preventDefault();
+
+      const firstName = document.getElementById("firstName").value.trim();
+      const lastName = document.getElementById("lastName").value.trim();
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+      const confirmPassword = document.getElementById("confirmPassword").value;
+      const message = document.getElementById("message");
+
+      const nameRegex = /^[A-Za-z]+$/;
+      const emailRegex = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{6,}$/;
+
+      if (!nameRegex.test(firstName) || !nameRegex.test(lastName)) {
+        message.textContent = "Names should contain only alphabets.";
+        return;
+      }
+
+      if (!emailRegex.test(email)) {
+        message.textContent = "Please enter a valid email ID.";
+        return;
+      }
+
+      if (!passwordRegex.test(password)) {
+        message.textContent = "Password must include uppercase, lowercase, number, and special character.";
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        message.textContent = "Passwords not matching.";
+        return;
+      }
+
+      message.style.color = "green";
+      message.textContent = "Form submitted successfully!";
+    });
+  </script>
+
+</body>
+</html>
